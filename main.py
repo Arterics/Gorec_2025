@@ -46,8 +46,11 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 @dp.callback_query(F.data == 'registration')
 async def registration(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     users = await get_tg_ids(session)
-    if (str(callback.from_user.id),) in users:
+    print(f"!!!! user: {callback.from_user.id}")
+    print(f"!!!! users: {users}")
+    if str(callback.from_user.id) in users:
         user = await get_user(session, str(callback.from_user.id))
+        print('!!!!!!!!', user)
         check = InlineKeyboardBuilder()
         check.add(InlineKeyboardButton(
             text="Всё верно",
@@ -57,8 +60,8 @@ async def registration(callback: CallbackQuery, state: FSMContext, session: Asyn
             text='Редактировать',
             callback_data='fix'
         ))
-        await callback.message.answer_photo(user[0].photo,
-                                            f"Вы уже зарегестрированы со следующими данными.\n\nФИО: {user[0].name}\n\nФото: \n\nХотите изменить?",
+        await callback.message.answer_photo(photo=user.photo,
+                                            caption=f"Вы уже зарегестрированы со следующими данными.\n\nФИО: {user.name}\n\nФото: \n\nХотите изменить?",
                                             reply_markup=check.as_markup())
         return
     await callback.message.answer('Введите ваше ФИО:')

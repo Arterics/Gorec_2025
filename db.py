@@ -25,7 +25,7 @@ async def get_user(db: AsyncSession, tg_id: str):
     """Получение участника по tg_ID"""
     stmt = select(User).where(User.tg_id == tg_id)
     result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
+    user = result.scalar()
     return user
 
 

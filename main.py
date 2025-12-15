@@ -147,7 +147,7 @@ async def get_access(message: Message, state: FSMContext, session: AsyncSession)
 
 
 @dp.message(F.text, Command('send_message'))
-async def broadcast_command(message: Message, state: FSMContext, session: AsyncSession):
+async def broadcast_all_command(message: Message, state: FSMContext, session: AsyncSession):
     if not await is_admin(session, str(message.from_user.id)):
         await message.answer('У вас нет прав администратора.')
         return
@@ -168,7 +168,7 @@ async def process_message(message: Message, state: FSMContext, session: AsyncSes
 
 
 @dp.message(F.text, Command('send_private_message'))
-async def broadcast_command(message: Message, state: FSMContext, session: AsyncSession):
+async def broadcast_private_command(message: Message, state: FSMContext, session: AsyncSession):
     if not await is_admin(session, str(message.from_user.id)):
         await message.answer('У вас нет прав администратора.')
         return
@@ -205,7 +205,7 @@ async def send_victims(message: Message, state: FSMContext, session: AsyncSessio
         victim = await get_user_by_id(session, user.victim)
         try:
             print(f'Send {user.name} with id {user.tg_id}, victim {victim.name} with id {victim.tg_id}')
-            await message.bot.send_photo(chat_id=user.tg_id, photo=victim.photo, caption=f"Ваша жертва: {victim.name}")
+            await message.bot.send_photo(chat_id=int(user.tg_id), photo=victim.photo, caption=f"Ваша жертва: {victim.name}")
         except Exception as e:
             logging.error(f"Не удалось отправить сообщение пользователю {user.id}: {e}")
     await message.answer('Рассылка завершена.')
@@ -221,14 +221,14 @@ async def show_players(message: Message, state: FSMContext, session: AsyncSessio
     for i in players:
         try:
             await message.bot.send_photo(chat_id=message.from_user.id, photo=i.photo,
-                                         caption=f"{i.name}\nadmin:{i.is_admin}\ndead:{i.victim}")
+                                         caption=f"{i.name}\nadmin:{i.is_admin}\ndead:{i.dead}")
         except Exception as e:
             await message.answer(f"Error in {i.id}: {e}")
     await message.answer('Рассылка завершена.')
 
 
 @dp.message(F.text, Command("rating"))
-async def get_rating(message: Message, state: FSMContext, session: AsyncSession):
+async def tg_get_rating(message: Message, state: FSMContext, session: AsyncSession):
     rating = await get_rating(session)
     print(rating)
     s = ""
@@ -257,10 +257,10 @@ async def register_kill(message: Message, state: FSMContext, session: AsyncSessi
         callback_data='refuse'
     ))
     user = await get_user(session, str(message.from_user.id))
-    if user.victim:
+    if user.victim and user.victim != -1:
         victim = await get_user_by_id(session, user.victim)
         await message.answer("Вашей жертве отправлен запрос на подтверждение убийства. Ожидайте ответа")
-        await message.bot.send_message(victim[0][4], "Подтвердите, что вы были убиты", reply_markup=check.as_markup())
+        await message.bot.send_message(int(victim.tg_id), "Подтвердите, что вы были убиты", reply_markup=check.as_markup())
     else:
         await message.answer('Игра ещё не началась.')
 
@@ -325,8 +325,8 @@ async def help(message: Message, state: FSMContext, session: AsyncSession):
 
 
 async def main() -> None:
-    session = await create_db()
-    async with bot:
+    SessionLocal = await create_db()
+    async with bot, SessionLocal() as session:
         await dp.start_polling(bot, session=session)
 
 

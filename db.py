@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine, create_async_engin
 from sqlalchemy import select
 
 import random
+import os
+from functools import partial
 
 new_point_system = False  # когда со множителями работаем
 
@@ -83,23 +85,42 @@ async def set_victim(db: AsyncSession, id_current, id_victim):
     await db.refresh(user)
 
 
+async def list_filenames(directory_path: str) -> list[str]:
+    """возвращает список названий файлов в указанной директории (без подпапок)."""
+    loop = asyncio.get_running_loop()
+
+    def _sync_list(dir_path: str) -> list[str]:
+        return [
+            name
+            for name in os.listdir(dir_path)
+            if os.path.isfile(os.path.join(dir_path, name))
+        ]
+
+    return await loop.run_in_executor(None, partial(_sync_list, directory_path))
+
+
 async def shuffle_players(db: AsyncSession):
     users = await get_data(db)
     players = [user for user in users if not user.is_admin]
-    if len(players) < 2:
+    filenames: list[str] = await list_filenames("./QR")
+    if (len(players) < 2) or (len(filenames) < len(players)):
         return []
+    print("!!! QR коды", filenames)
+    random.shuffle(filenames)
     random.shuffle(players)
-    await make_alive(db, players[0].tg_id)
+    players[0].qr_name = filenames[0]
+    await db.commit()
+    print(f"!!! user: {players[0].name} with tg_id: {players[0].tg_id} have qr name: {players[0].qr_name}")
     for i in range(1, len(players)):
-        players[i - 1] = (players[i - 1].id, players[i - 1].name,
-                          players[i - 1].photo, players[i].id, players[i - 1].tg_id,
-                          players[i - 1].is_admin, players[i - 1].dead)
+        players[i].qr_name = filenames[i]
+        await db.commit()
+        print(f"!!! user: {players[i].name} with tg_id: {players[i].tg_id} have qr name: {players[i].qr_name}")
+
         await set_victim(db, players[i - 1].id, players[i].id)
         await make_alive(db, players[i].tg_id)
+
     await set_victim(db, players[-1].id, players[0].id)
-    players[-1] = (players[-1].id, players[-1].name,
-                   players[-1].photo, players[0].id, players[-1].tg_id,
-                   players[-1].is_admin, players[-1].dead)
+    await make_alive(db, players[0].tg_id)
     return players
 
 
@@ -157,16 +178,14 @@ async def make_alive(db: AsyncSession, tg_id: str):
 
 async def get_alive(db: AsyncSession):
     users = await get_data(db)
-    data = [user for user in users if not user.dead]
+    data = [user for user in users if (not user.dead) and (not user.is_admin)]
     return data
 
 
 async def get_killer(db: AsyncSession, id):
-    stmt = select(User)
+    stmt = select(User).where(User.victim == id)
     result = await db.execute(stmt)
-    data = result.scalars().all()
-    data = [user for user in data if user.victim == id]
-    return data
+    return result.scalar()
 
 
 async def get_user_by_id(db: AsyncSession, bd_id: str):
@@ -185,7 +204,7 @@ async def create_db():
     #     print('!')
     #     print(await get_data(session))
 
-    return async_session_local()
+    return async_session_local
 
 
 if __name__ == "__main__":

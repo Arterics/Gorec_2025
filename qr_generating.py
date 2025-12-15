@@ -23,40 +23,89 @@ def generate_custom_qr(text, filename="QR/custom_qr.png",
 
     img = qr.make_image(fill_color=fill_color, back_color=back_color)
 
-    # Создаём директорию если её нет
     os.makedirs(os.path.dirname(filename) if os.path.dirname(filename) else '.', exist_ok=True)
 
     img.save(filename)
     return img
 
 
-def name_generation(base: list[str], adjective: list[str], dop: list[str])-> list[str]:  # adective + base + dop
-    random.shuffle(base)
-    random.shuffle(adjective)
-    random.shuffle(dop)
-    names = []
-    for i in range(min(len(base), len(dop), len(adjective))):
-        names.append(f"{adjective} {base} {dop}")
-    return names
+def generate_unique_combinations(n):
+    max_combinations = len(gifts) * len(adjectives) * len(descriptions)
+    if n > max_combinations:
+        raise ValueError(f"Максимально возможное число комбинаций: {max_combinations}")
+
+    all_indices = [
+        (i, j, k)
+        for i in range(len(gifts))
+        for j in range(len(adjectives))
+        for k in range(len(descriptions))
+    ]
+    random.shuffle(all_indices)
+    chosen = all_indices[:n]
+
+    result = []
+    for i, j, k in chosen:
+        phrase = f"{adjectives[j]} {gifts[i]} {descriptions[k]}"
+        result.append(phrase)
+    return result
 
 
-# Примеры использования
 if __name__ == "__main__":
-    base = [
-        "Машинка",
-        "",
-        "",
-        "",
-        "",
-        "",
+    gifts = [
+        "книга",
+        "кружка",
+        "подписка",
+        "монополия",
+        "настольная игра",
+        "флешка",
+        "футболка",
+        "мышка",
+        "клавиатура",
+        "колонка",
+        "термокружка",
+        "картина",
+        "фигурка",
+        "лампа",
+        "подушка",
+        "подарочная карта"
     ]
-    dop = [
-        "p",
+    descriptions = [
+        "с индивидуальным дизайном",
+        "с забавной надписью",
+        "для ежедневного использования",
+        "для работы и учёбы",
+        "для настоящих гиков",
+        "с возможностью персонализации",
+        "для уютных вечеров дома",
+        "для продуктивной работы",
+        "для творческих людей",
+        "для тех, кто ценит комфорт",
+        "для тех, кто любит порядок",
+        "для долгих зимних вечеров",
+        "для путешествий и поездок",
+        "для тех, кто много работает за компьютером",
+        "для ценителей минимализма",
+        "для хорошего настроения каждый день"
     ]
-    adjective = [
-        "d",
+    adjectives = [
+        "крутая",
+        "оригинальная",
+        "полезная",
+        "стильная",
+        "прикольная",
+        "удобная",
+        "незабываемая",
+        "яркая",
+        "интересная",
+        "современная",
+        "минималистичная",
+        "технологичная",
+        "качественная",
+        "компактная",
+        "универсальная",
+        "элегантная"
     ]
-    texts = name_generation(base=base, adjective=adjective, dop=dop)
+    texts = generate_unique_combinations(30)
     for i, text in enumerate(texts):
         generate_custom_qr(
             text,

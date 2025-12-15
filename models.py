@@ -23,7 +23,7 @@ class User(Base):
     dead: Mapped[bool] = mapped_column(Boolean)
 
 
-class Daily(Base):
+class Daily(Base): 
     __tablename__ = "daily"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     score: Mapped[int] = mapped_column(Integer)

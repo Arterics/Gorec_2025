@@ -12,7 +12,7 @@ from db import *
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery, ContentType
+from aiogram.types import Message, CallbackQuery, ContentType, FSInputFile
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -198,14 +198,19 @@ async def send_victims(message: Message, state: FSMContext, session: AsyncSessio
         return
 
     shuffled_players = await shuffle_players(session)
-    if len(shuffled_players) == 0:
+    if len(shuffled_players) < 2:
         await message.answer('Для старта игры недостаточно игроков')
         return
     for user in shuffled_players:
         victim = await get_user_by_id(session, user.victim)
         try:
+            await message.bot.send_photo(chat_id=int(user.tg_id), photo=victim.photo,
+                                         caption=f"Ваша жертва: {victim.name}")
+            photo = FSInputFile(f"QR/{user.qr_name}")
+            await message.bot.send_photo(chat_id=int(user.tg_id), photo=photo,
+                                         caption=f"Вы должны быть хитры и незаметны,"
+                                                 f" но если вас поймают придется показать QR...")
             print(f'Send {user.name} with id {user.tg_id}, victim {victim.name} with id {victim.tg_id}')
-            await message.bot.send_photo(chat_id=int(user.tg_id), photo=victim.photo, caption=f"Ваша жертва: {victim.name}")
         except Exception as e:
             logging.error(f"Не удалось отправить сообщение пользователю {user.id}: {e}")
     await message.answer('Рассылка завершена.')
@@ -260,7 +265,8 @@ async def register_kill(message: Message, state: FSMContext, session: AsyncSessi
     if user.victim and user.victim != -1:
         victim = await get_user_by_id(session, user.victim)
         await message.answer("Вашей жертве отправлен запрос на подтверждение убийства. Ожидайте ответа")
-        await message.bot.send_message(int(victim.tg_id), "Подтвердите, что вы были убиты", reply_markup=check.as_markup())
+        await message.bot.send_message(int(victim.tg_id), "Подтвердите, что вы были убиты",
+                                       reply_markup=check.as_markup())
     else:
         await message.answer('Игра ещё не началась.')
 

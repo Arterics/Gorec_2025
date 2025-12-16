@@ -83,7 +83,8 @@ async def fix_registration(callback: CallbackQuery, state: FSMContext, session: 
 async def process_name(message: Message, state: FSMContext):
     await state.update_data(name=message.text)
     await message.answer(
-        'Отправьте фотографию, на которой хорошо видно ваше лицо(за прикрепление не вашей фотографии, предусматривается дисквалификация):')
+        '''Отправьте фотографию, на которой хорошо видно ваше лицо.
+‼️ За прикрепление не вашей фотографии, предусматривается дисквалификация:''')
     await state.set_state(Registration.photo)
 
 
@@ -275,7 +276,8 @@ async def process_qr_sending(message: Message, state: FSMContext, session: Async
         await set_victim(session, user.id, victim.victim)
         victim_data = await get_user_by_id(session, user.victim)
         await message.bot.send_photo(chat_id=user.tg_id, photo=victim_data.photo,
-                                     caption=f"Подарок запакован! Очки начислены. Ваша новая жертва: {victim_data.name}")
+                                     caption=f"✅ Подарок запакован! Очки начислены. "
+                                             f"<b> Ваша новая жертва: {victim_data.name}</b>")
         await message.bot.send_message(str(victim.tg_id),
                                        "Вы были пойманы! Отдыхайте до следующего дня и готовьте новую тактику!")
     else:

@@ -299,6 +299,16 @@ async def change_point_system(message: Message, state: FSMContext, session: Asyn
     await state.clear()
 
 
+@dp.message(F.text, Command("clear_score"))
+async def reset_score(message: Message, state: FSMContext, session: AsyncSession):
+    if not await is_admin(session, str(message.from_user.id)):
+        await message.answer('У вас нет прав администратора.')
+        return
+    await set_nule_score(session)
+    await message.answer("Обнуление очков завершено.")
+    await state.clear()
+
+
 @dp.message(F.text, Command("help"))
 async def help(message: Message, state: FSMContext, session: AsyncSession):
     s = '''Доступные команды:

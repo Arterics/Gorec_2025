@@ -278,7 +278,7 @@ async def process_qr_sending(message: Message, state: FSMContext, session: Async
         await message.bot.send_message(str(victim.tg_id),
                                        "Вы были пойманы! Отдыхайте до следующего дня и готовьте новую тактику!")
     else:
-        await message.answer("Это не тот QR код! Подарок перепутали? Попытайтесь ещё раз...")
+        await message.answer("Это не тот QR код! Подарок перепутали? Попробуйте ещё раз...")
 
     await state.clear()
 

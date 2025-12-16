@@ -28,6 +28,17 @@ async def register_user(db: AsyncSession, tg_id: str, name: str, photo: str) -> 
     await db.refresh(db_daily)
 
 
+async def set_nule_score(db: AsyncSession) -> None:
+    users = await get_data(db)
+    for user in users:
+        stmt = select(Daily).where(Daily.user_id == user.id)
+        dailys = await db.execute(stmt)
+        daily = dailys.scalar()
+        daily.score = 0
+        await db.commit()
+
+
+
 async def get_user(db: AsyncSession, tg_id: str):
     """Получение участника по tg_ID"""
     stmt = select(User).where(User.tg_id == tg_id)

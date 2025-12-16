@@ -120,7 +120,7 @@ async def finish_registration(callback: CallbackQuery, state: FSMContext, sessio
     await register_user(session, tg_id=str(callback.from_user.id), name=data['name'], photo=data['photo'])
     await callback.message.answer('''Поздравляю! Вы успешно прошли регистрацию.
 
-Ждите дальнейших указаний ☠️''')
+Ждите дальнейших указаний 🎁''')
     await bot.send_photo(chat_id=ADMIN, photo=data['photo'], caption=f"Новый участник: {data['name']}")
     await state.clear()
 

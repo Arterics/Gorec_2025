@@ -32,6 +32,10 @@ class Registration(StatesGroup):
     photo = State()
 
 
+class Killing(StatesGroup):
+    send_qr = State()
+
+
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     registr = InlineKeyboardBuilder()
@@ -252,53 +256,31 @@ async def register_kill(message: Message, state: FSMContext, session: AsyncSessi
     if await is_dead(session, str(message.from_user.id)):
         await message.answer('К сожалению, вы уже выбыли из игры.')
         return
-    check = InlineKeyboardBuilder()
-    check.add(InlineKeyboardButton(
-        text="Подтверждаю",
-        callback_data="agree")
-    )
-    check.add(InlineKeyboardButton(
-        text='Он(а) врет',
-        callback_data='refuse'
-    ))
     user = await get_user(session, str(message.from_user.id))
     if user.victim and user.victim != -1:
-        victim = await get_user_by_id(session, user.victim)
-        await message.answer("Вашей жертве отправлен запрос на подтверждение убийства. Ожидайте ответа")
-        await message.bot.send_message(int(victim.tg_id), "Подтвердите, что вы были убиты",
-                                       reply_markup=check.as_markup())
+        await state.set_state(Killing.send_qr)
+        await message.answer("Введите фразу из QR кода жертвы")
     else:
         await message.answer('Игра ещё не началась.')
 
 
-@dp.callback_query(F.data == 'agree')
-async def confirm_kill(message: Message, state: FSMContext, session: AsyncSession):
-    me = await get_user(session, str(message.from_user.id))
-    await make_dead(session, str(message.from_user.id))
-    killer = await get_killer(session, me.id)
-    print(me, killer)
-    await add_point(session, killer.id)
-    await set_victim(session, killer.id, me.victim)
-    victim_data = await get_user_by_id(session, me.victim)
-    await message.bot.send_message(str(message.from_user.id),
-                                   "Вы были убиты. Отдыхайте до следующего дня и готовьте новую тактику!")
-    await message.bot.send_photo(chat_id=killer.tg_id, photo=victim_data.photo,
-                                 caption=f"Цель успешно ликвидирована. Очки начислены. Ваша новая жертва: {victim_data.name}")
+@dp.message(F.text, Killing.send_qr)
+async def process_qr_sending(message: Message, state: FSMContext, session: AsyncSession):
+    qr_text = message.text
+    user = await get_user(session, str(message.from_user.id))
+    victim = await get_user_by_id(session, user.victim)
+    if qr_text in victim.qr_name:
+        await add_point(session, user.id)
+        await set_victim(session, user.id, victim.victim)
+        victim_data = await get_user_by_id(session, user.victim)
+        await message.bot.send_photo(chat_id=user.tg_id, photo=victim_data.photo,
+                                     caption=f"Подарок запакован! Очки начислены. Ваша новая жертва: {victim_data.name}")
+        await message.bot.send_message(str(victim.tg_id),
+                                       "Вы были пойманы! Отдыхайте до следующего дня и готовьте новую тактику!")
+    else:
+        await message.answer("Это не тот QR код! Подарок перепутали? Попытайтесь ещё раз...")
 
-
-@dp.callback_query(F.data == 'refuse')
-async def reject_kill(message: Message, state: FSMContext, session: AsyncSession):
-    global bot
-    me = await get_user(session, str(message.from_user.id))
-    print(me)
-    killer = await get_killer(session, me.id)
-    print(killer)
-    await bot.send_message(ADMIN,
-                           f"Участник {me.name} с tg_id {str(message.from_user.id)} отказывается принимать смерть от рук {killer.name} с tg_id {killer.tg_id}")
-    await message.bot.send_message(str(message.from_user.id),
-                                   "Вы отказались признать свой проигрыш. Администраторы разберутся, кто тут прав, ждите скорейшего ответа!")
-    await message.bot.send_message(killer.tg_id,
-                                   f"Ваша жертва отказывается признавать свою смерть. Ожидайте решения администраторов")
+    await state.clear()
 
 
 @dp.message(F.text, Command("change_point_system"))

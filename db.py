@@ -21,6 +21,11 @@ async def register_user(db: AsyncSession, tg_id: str, name: str, photo: str) -> 
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
+    user = await get_user(db, tg_id)
+    db_daily = Daily(user_id=user.id, score=0)
+    db.add(db_daily)
+    await db.commit()
+    await db.refresh(db_daily)
 
 
 async def get_user(db: AsyncSession, tg_id: str):
@@ -194,7 +199,7 @@ async def get_user_by_id(db: AsyncSession, bd_id: str):
 
 
 async def create_db():
-    db_url = 'sqlite+aiosqlite:///db/database-many.db'
+    db_url = 'sqlite+aiosqlite:///db/database.db'
     engine: AsyncEngine = create_async_engine(db_url, echo=True, future=True)
     async_session_local = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     await create_tables(engine)

@@ -270,6 +270,7 @@ async def process_qr_sending(message: Message, state: FSMContext, session: Async
     user = await get_user(session, str(message.from_user.id))
     victim = await get_user_by_id(session, user.victim)
     if qr_text in victim.qr_name:
+        await make_dead(session, victim.tg_id)
         await add_point(session, user.id)
         await set_victim(session, user.id, victim.victim)
         victim_data = await get_user_by_id(session, user.victim)
